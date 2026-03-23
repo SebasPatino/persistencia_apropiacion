@@ -15,24 +15,25 @@ USE inventario_adso;
 
 -- 6. Crear la tabla de Categorías (Debe ir primero porque no depende de nadie)
 CREATE TABLE categories (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
     created_ud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_up TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- 7. Crear la tabla de Productos
 CREATE TABLE products (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    category_id INT NOT NULL,
-    created_ud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_up TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100)   NOT NULL,
+    price       DECIMAL(10, 2) NOT NULL,
+    category_id INT            NOT NULL,
+    created_ud  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_up  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     -- Definición de la Llave Foránea con restricción de eliminación
     CONSTRAINT fk_product_category
-    FOREIGN KEY (category_id)
-    REFERENCES categories(id)
-    ON DELETE RESTRICT
-    ON UPDATE CASCADE
+        FOREIGN KEY (category_id)
+        REFERENCES categories (id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
 );

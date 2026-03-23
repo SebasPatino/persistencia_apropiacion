@@ -1,28 +1,38 @@
-import categoriesData from "../data/categories.data.js";
+import pool from "../database/connection.js";
 
 export const CategoryModel = {
-  findAll: () => categoriesData,
 
-  findById: (id) => categoriesData.find((c) => c.id === id),
-
-  create: (newCategory) => {
-    const id = categoriesData.length + 1;
-    const categoryWithId = { id, ...newCategory };
-    categoriesData.push(categoryWithId);
-    return categoryWithId;
+  findAll: async () => {
+    const [rows] = await pool.query("SELECT * FROM categories");
+    return rows;
   },
 
-  update: (id, updatedFields) => {
-    const index = categoriesData.findIndex((c) => c.id === id);
-    if (index === -1) return null;
-    categoriesData[index] = { ...categoriesData[index], ...updatedFields };
-    return categoriesData[index];
+  findById: async (id) => {
+    const [rows] = await pool.query(
+      "SELECT * FROM categories WHERE id = ?", [id]
+    );
+    return rows[0]; // Retorna el objeto o undefined
   },
 
-  delete: (id) => {
-    const index = categoriesData.findIndex((c) => c.id === id);
-    if (index === -1) return false;
-    categoriesData.splice(index, 1);
-    return true;
+  create: async ({ name }) => {
+    const [result] = await pool.query(
+      "INSERT INTO categories (name) VALUES (?)", [name]
+    );
+    return { id: result.insertId, name };
+  },
+
+  update: async (id, { name }) => {
+    const [result] = await pool.query(
+      "UPDATE categories SET name = ? WHERE id = ?", [name, id]
+    );
+    if (result.affectedRows === 0) return null;
+    return { id, name };
+  },
+
+  delete: async (id) => {
+    const [result] = await pool.query(
+      "DELETE FROM categories WHERE id = ?", [id]
+    );
+    return result.affectedRows > 0;
   },
 };
