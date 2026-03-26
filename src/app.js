@@ -1,22 +1,14 @@
 import express from "express";
+import "dotenv/config";
 import productRouter from "./routes/product.routes.js";
 import categoryRouter from "./routes/category.routes.js";
 
-
 const app = express();
 
+// Middleware para leer JSON en el body
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Saludo de la API",
-    data: [],
-    errors: [],
-  });
-})
-
+// Rutas
 app.use("/products", productRouter);
 app.use("/categories", categoryRouter);
 

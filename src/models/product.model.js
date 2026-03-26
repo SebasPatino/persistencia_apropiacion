@@ -1,48 +1,60 @@
-import pool from "../database/connection.js";
+import pool from "../config/db.js";
 
 export const ProductModel = {
-
   findAll: async () => {
     const [rows] = await pool.query("SELECT * FROM products");
     return rows;
   },
 
   findById: async (id) => {
-    const [rows] = await pool.query(
-      "SELECT * FROM products WHERE id = ?", [id]
-    );
+    const [rows] = await pool.query("SELECT * FROM products WHERE id = ?", [id]);
     return rows[0];
   },
 
-  findByCategoryId: async (category_id) => {
+  // Usamos category_id (nombre correcto en la BD después de la corrección)
+  findByCategoryId: async (categoryId) => {
     const [rows] = await pool.query(
-      "SELECT * FROM products WHERE category_id = ?", [category_id]
+      "SELECT * FROM products WHERE category_id = ?",
+      [categoryId]
     );
     return rows;
   },
 
-  create: async ({ name, price, category_id }) => {
+  create: async (newProduct) => {
+    const { name, category_id, price } = newProduct;
+
     const [result] = await pool.query(
-      "INSERT INTO products (name, price, category_id) VALUES (?, ?, ?)",
-      [name, price, category_id]
+      "INSERT INTO products (name, category_id, price) VALUES (?, ?, ?)",
+      [name, category_id, price]
     );
-    return { id: result.insertId, name, price, category_id };
+
+    const [createdProduct] = await pool.query(
+      "SELECT * FROM products WHERE id = ?",
+      [result.insertId]
+    );
+    return createdProduct[0];
   },
 
   update: async (id, updatedFields) => {
-    const { name, price, category_id } = updatedFields;
+    const { name, category_id, price } = updatedFields;
+
+    // CORREGIDO: faltaba una coma entre category_id y price
     const [result] = await pool.query(
-      "UPDATE products SET name = ?, price = ?, category_id = ? WHERE id = ?",
-      [name, price, category_id, id]
+      "UPDATE products SET name = ?, category_id = ?, price = ? WHERE id = ?",
+      [name, category_id, price, id]
     );
+
     if (result.affectedRows === 0) return null;
-    return { id, ...updatedFields };
+
+    const [updatedProduct] = await pool.query(
+      "SELECT * FROM products WHERE id = ?",
+      [id]
+    );
+    return updatedProduct[0];
   },
 
   delete: async (id) => {
-    const [result] = await pool.query(
-      "DELETE FROM products WHERE id = ?", [id]
-    );
+    const [result] = await pool.query("DELETE FROM products WHERE id = ?", [id]);
     return result.affectedRows > 0;
   },
 };

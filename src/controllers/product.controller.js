@@ -12,9 +12,9 @@ const getAllProducts = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al obtener los productos",
+      message: "Error interno al obtener los productos",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
@@ -23,6 +23,7 @@ const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await ProductModel.findById(Number(id));
+
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -40,25 +41,28 @@ const getProductById = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al procesar la búsqueda",
+      message: "Error interno al procesar la búsqueda",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
 
 const createProduct = async (req, res) => {
   try {
-    const { name, price, category_id } = req.body;
-    if (!name || !price) {
+    // CORREGIDO: ahora usamos category_id (nombre correcto)
+    const { name, category_id, price } = req.body;
+
+    if (!name || !category_id || !price) {
       return res.status(400).json({
         success: false,
-        message: "Nombre y precio son obligatorios",
+        message: "El nombre, precio y el ID de la categoría (category_id) son obligatorios",
         data: [],
         errors: [],
       });
     }
-    const newProduct = await ProductModel.create({ name, price, category_id });
+
+    const newProduct = await ProductModel.create({ name, category_id, price });
     res.status(201).json({
       success: true,
       message: "Producto creado correctamente",
@@ -68,9 +72,9 @@ const createProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al crear el producto",
+      message: "Error interno al crear el producto. Verifique que la categoría exista.",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
@@ -79,6 +83,7 @@ const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedProduct = await ProductModel.update(Number(id), req.body);
+
     if (!updatedProduct) {
       return res.status(404).json({
         success: false,
@@ -87,6 +92,7 @@ const updateProduct = async (req, res) => {
         errors: [],
       });
     }
+
     res.status(200).json({
       success: true,
       message: "Producto actualizado correctamente",
@@ -96,9 +102,9 @@ const updateProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al actualizar el producto",
+      message: "Error interno al actualizar el producto",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
@@ -107,6 +113,7 @@ const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const isDeleted = await ProductModel.delete(Number(id));
+
     if (!isDeleted) {
       return res.status(404).json({
         success: false,
@@ -115,6 +122,7 @@ const deleteProduct = async (req, res) => {
         errors: [],
       });
     }
+
     res.status(200).json({
       success: true,
       message: "Producto eliminado correctamente",
@@ -124,11 +132,17 @@ const deleteProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al intentar eliminar el producto",
+      message: "Error interno al intentar eliminar el producto",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
 
-export { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct };
+export {
+  getAllProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+};

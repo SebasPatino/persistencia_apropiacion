@@ -62,11 +62,11 @@ Una vez que el CRUD de categorías funcione, debemos relacionar ambas entidades:
 
 | Tarea | Estado |
 | :--- | :--- |
-| CRUD de Categorías funcionando al 100%. | [x] |
-| Los productos incluyen la propiedad `category_id`. | [x] |
-| Las respuestas JSON siguen el formato estandarizado. | [x] |
-| Se impide el borrado de categorías con productos vinculados. | [x] |
-| El código está correctamente organizado en las 4 capas. | [x] |
+| CRUD de Categorías funcionando al 100%. | [ ] |
+| Los productos incluyen la propiedad `categoryId`. | [ ] |
+| Las respuestas JSON siguen el formato estandarizado. | [ ] |
+| Se impide el borrado de categorías con productos vinculados. | [ ] |
+| El código está correctamente organizado en las 4 capas. | [ ] |
 
 ---
 

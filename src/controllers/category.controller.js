@@ -1,5 +1,5 @@
 import { CategoryModel } from "../models/category.model.js";
-// IMPORTANTE: Importamos el modelo de productos para las reglas de negocio cruzadas
+// Mantenemos el modelo de productos para las relaciones (pronto lo haremos asíncrono también)
 import { ProductModel } from "../models/product.model.js";
 
 const getAllCategories = async (req, res) => {
@@ -14,9 +14,9 @@ const getAllCategories = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al obtener las categorías",
+      message: "Error interno del servidor al obtener las categorías",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
@@ -25,6 +25,7 @@ const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
     const category = await CategoryModel.findById(Number(id));
+
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -42,9 +43,9 @@ const getCategoryById = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al procesar la búsqueda",
+      message: "Error interno al buscar la categoría",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
@@ -52,6 +53,7 @@ const getCategoryById = async (req, res) => {
 const createCategory = async (req, res) => {
   try {
     const { name } = req.body;
+
     if (!name) {
       return res.status(400).json({
         success: false,
@@ -60,6 +62,7 @@ const createCategory = async (req, res) => {
         errors: [],
       });
     }
+
     const newCategory = await CategoryModel.create({ name });
     res.status(201).json({
       success: true,
@@ -70,9 +73,9 @@ const createCategory = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al crear la categoría",
+      message: "Error interno al crear la categoría",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
@@ -81,6 +84,7 @@ const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedCategory = await CategoryModel.update(Number(id), req.body);
+
     if (!updatedCategory) {
       return res.status(404).json({
         success: false,
@@ -98,19 +102,19 @@ const updateCategory = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al actualizar la categoría",
+      message: "Error interno al actualizar la categoría",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
 
-// RETO DE INTEGRIDAD: Eliminar validando dependencias
+// RETO DE INTEGRIDAD CON ASYNC/AWAIT
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1. Verificamos si la categoría existe antes de intentar borrarla
+    // 1. Verificamos si la categoría existe
     const categoryExists = await CategoryModel.findById(Number(id));
     if (!categoryExists) {
       return res.status(404).json({
@@ -121,19 +125,21 @@ const deleteCategory = async (req, res) => {
       });
     }
 
-    // 2. Regla de Negocio: Preguntamos al Modelo de Productos si hay recursos vinculados
+    // 2. Regla de Negocio: Validamos dependencias
+    // (Añadimos 'await' anticipando que el ProductModel también será refactorizado a BD)
     const linkedProducts = await ProductModel.findByCategoryId(Number(id));
     if (linkedProducts && linkedProducts.length > 0) {
-      return res.status(409).json({ // 409 Conflict
+      return res.status(409).json({
         success: false,
-        message: "No se puede eliminar la categoría porque tiene al menos un recurso vinculado",
+        message:
+          "No se puede eliminar la categoría porque tiene al menos un recurso vinculado",
         data: [],
         errors: [],
       });
     }
 
-    // 3. Si pasa las validaciones, procedemos a eliminar
-    await CategoryModel.delete(Number(id));
+    // 3. Procedemos a eliminar
+    const isDeleted = await CategoryModel.delete(Number(id));
     res.status(200).json({
       success: true,
       message: "Categoría eliminada correctamente",
@@ -143,19 +149,18 @@ const deleteCategory = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error al intentar eliminar la categoría",
+      message: `Error al intentar eliminar la categoría`,
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
 
-// RUTA RELACIONAL: Traer todos los productos de una categoría
+// RUTA RELACIONAL ASÍNCRONA
 const getProductsByCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1. Validar que la categoría exista
     const categoryExists = await CategoryModel.findById(Number(id));
     if (!categoryExists) {
       return res.status(404).json({
@@ -166,7 +171,7 @@ const getProductsByCategory = async (req, res) => {
       });
     }
 
-    // 2. Buscar los productos vinculados a esa categoría
+    // Añadimos 'await' preparando el terreno para el ProductModel
     const products = await ProductModel.findByCategoryId(Number(id));
     res.status(200).json({
       success: true,
@@ -179,7 +184,7 @@ const getProductsByCategory = async (req, res) => {
       success: false,
       message: "Error al buscar los productos de la categoría",
       data: [],
-      errors: [],
+      errors: [error.message],
     });
   }
 };
