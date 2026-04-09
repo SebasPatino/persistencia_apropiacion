@@ -2,10 +2,10 @@
 CREATE DATABASE IF NOT EXISTS inventario_adso;
 
 -- 2. Crear el usuario restringido a localhost
-CREATE USER 'app_user'@'localhost' IDENTIFIED BY '#ADSO_node';
+CREATE USER 'SENA'@'localhost' IDENTIFIED BY '123456';
 
 -- 3. Asignar todos los privilegios de ESA base de datos a ESTE usuario
-GRANT ALL PRIVILEGES ON inventario_adso.* TO 'app_user'@'localhost';
+GRANT ALL PRIVILEGES ON inventario_adso.* TO 'SENA'@'localhost';
 
 -- 4. Aplicar los cambios de privilegios inmediatamente
 FLUSH PRIVILEGES;

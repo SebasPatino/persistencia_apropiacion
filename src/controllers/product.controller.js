@@ -1,143 +1,72 @@
+/**
+ * product.controller.js — REFACTORIZADO
+ *
+ * Cambios aplicados (Punto C - Apropiación del conocimiento):
+ * ✅ Se eliminaron TODOS los bloques try/catch (los maneja catchAsync + errorMiddleware)
+ * ✅ Se reemplazaron todos los res.status().json() por successResponse / errorResponse
+ * ✅ El controlador ahora solo contiene lógica de negocio (código limpio, principio DRY)
+ */
+
 import { ProductModel } from "../models/product.model.js";
+import { catchAsync } from "../utils/catchAsync.util.js";
+import { successResponse, errorResponse } from "../utils/response.util.js";
 
-const getAllProducts = async (req, res) => {
-  try {
-    const products = await ProductModel.findAll();
-    res.status(200).json({
-      success: true,
-      message: "Lista de productos",
-      data: products,
-      errors: [],
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error interno al obtener los productos",
-      data: [],
-      errors: [error.message],
-    });
+const getAllProducts = catchAsync(async (req, res) => {
+  const products = await ProductModel.findAll();
+  successResponse(res, "Lista de productos", products);
+});
+
+const getProductById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const product = await ProductModel.findById(Number(id));
+
+  if (!product) {
+    return errorResponse(res, `Producto con ID ${id} no encontrado`, 404);
   }
-};
 
-const getProductById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const product = await ProductModel.findById(Number(id));
+  successResponse(res, "Producto encontrado correctamente", product);
+});
 
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: `Producto con ID ${id} no encontrado`,
-        data: [],
-        errors: [],
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "Producto encontrado correctamente",
-      data: product,
-      errors: [],
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error interno al procesar la búsqueda",
-      data: [],
-      errors: [error.message],
-    });
+const createProduct = catchAsync(async (req, res) => {
+  const { name, category_id, price } = req.body;
+
+  if (!name || !category_id || !price) {
+    return errorResponse(
+      res,
+      "El nombre, precio y el ID de la categoría (category_id) son obligatorios",
+      400
+    );
   }
-};
 
-const createProduct = async (req, res) => {
-  try {
-    // CORREGIDO: ahora usamos category_id (nombre correcto)
-    const { name, category_id, price } = req.body;
+  const newProduct = await ProductModel.create({ name, category_id, price });
+  successResponse(res, "Producto creado correctamente", newProduct, 201);
+});
 
-    if (!name || !category_id || !price) {
-      return res.status(400).json({
-        success: false,
-        message: "El nombre, precio y el ID de la categoría (category_id) son obligatorios",
-        data: [],
-        errors: [],
-      });
-    }
+const updateProduct = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const updatedProduct = await ProductModel.update(Number(id), req.body);
 
-    const newProduct = await ProductModel.create({ name, category_id, price });
-    res.status(201).json({
-      success: true,
-      message: "Producto creado correctamente",
-      data: newProduct,
-      errors: [],
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error interno al crear el producto. Verifique que la categoría exista.",
-      data: [],
-      errors: [error.message],
-    });
+  if (!updatedProduct) {
+    return errorResponse(res, `Producto con ID ${id} no encontrado`, 404);
   }
-};
 
-const updateProduct = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updatedProduct = await ProductModel.update(Number(id), req.body);
+  successResponse(res, "Producto actualizado correctamente", updatedProduct);
+});
 
-    if (!updatedProduct) {
-      return res.status(404).json({
-        success: false,
-        message: `Producto con ID ${id} no encontrado`,
-        data: [],
-        errors: [],
-      });
-    }
+const deleteProduct = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const isDeleted = await ProductModel.delete(Number(id));
 
-    res.status(200).json({
-      success: true,
-      message: "Producto actualizado correctamente",
-      data: updatedProduct,
-      errors: [],
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error interno al actualizar el producto",
-      data: [],
-      errors: [error.message],
-    });
+  if (!isDeleted) {
+    return errorResponse(
+      res,
+      `No se pudo eliminar: Producto con ID ${id} no encontrado`,
+      404
+    );
   }
-};
 
-const deleteProduct = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const isDeleted = await ProductModel.delete(Number(id));
-
-    if (!isDeleted) {
-      return res.status(404).json({
-        success: false,
-        message: `No se pudo eliminar: Producto con ID ${id} no encontrado`,
-        data: [],
-        errors: [],
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Producto eliminado correctamente",
-      data: [],
-      errors: [],
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error interno al intentar eliminar el producto",
-      data: [],
-      errors: [error.message],
-    });
-  }
-};
+  successResponse(res, "Producto eliminado correctamente");
+});
 
 export {
   getAllProducts,
