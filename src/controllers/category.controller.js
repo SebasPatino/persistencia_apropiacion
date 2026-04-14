@@ -31,10 +31,6 @@ const getCategoryById = catchAsync(async (req, res) => {
 const createCategory = catchAsync(async (req, res) => {
   const { name } = req.body;
 
-  if (!name) {
-    return errorResponse(res, "El nombre de la categoría es obligatorio", 400);
-  }
-
   const newCategory = await CategoryModel.create({ name });
   successResponse(res, "Categoría creada correctamente", newCategory, 201);
 });

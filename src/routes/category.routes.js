@@ -8,12 +8,15 @@ import {
   getProductsByCategory, // Controlador especial para la relación
 } from "../controllers/category.controller.js";
 
+import { validateSchema } from "../middlewares/validator.middleware.js";
+import { categorySchema, categoryUpdateSchema } from "../schemas/category.schema.js";
+
 const categoryRouter = Router();
 
 categoryRouter.get("/", getAllCategories);
 categoryRouter.get("/:id", getCategoryById);
-categoryRouter.post("/", createCategory);
-categoryRouter.put("/:id", updateCategory);
+categoryRouter.post("/", validateSchema(categorySchema), createCategory);
+categoryRouter.put("/:id", validateSchema(categoryUpdateSchema), updateCategory);
 categoryRouter.delete("/:id", deleteCategory);
 
 // Ruta Relacional: Obtener productos por categoría

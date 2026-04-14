@@ -30,14 +30,6 @@ const getProductById = catchAsync(async (req, res) => {
 const createProduct = catchAsync(async (req, res) => {
   const { name, category_id, price } = req.body;
 
-  if (!name || !category_id || !price) {
-    return errorResponse(
-      res,
-      "El nombre, precio y el ID de la categoría (category_id) son obligatorios",
-      400
-    );
-  }
-
   const newProduct = await ProductModel.create({ name, category_id, price });
   successResponse(res, "Producto creado correctamente", newProduct, 201);
 });
