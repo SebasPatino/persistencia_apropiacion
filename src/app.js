@@ -19,7 +19,7 @@ app.use("/auth", authRouter);
 app.use("/products", verifyToken, productRouter);
 
 // /categories sigue siendo público (puedes protegerlo también con verifyToken)
-app.use("/categories", categoryRouter);
+app.use("/categories", verifyToken, categoryRouter);
 
 // ⚠️ El middleware de errores SIEMPRE va al final
 app.use(errorMiddleware);
