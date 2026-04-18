@@ -1,14 +1,14 @@
 -- 1. Crear la base de datos
-CREATE DATABASE IF NOT EXISTS inventario_adso;
+-- CREATE DATABASE IF NOT EXISTS inventario_adso;
 
 -- 2. Crear el usuario restringido a localhost
-CREATE USER 'SENA'@'localhost' IDENTIFIED BY '123456';
+-- CREATE USER 'SENA'@'localhost' IDENTIFIED BY '123456';
 
 -- 3. Asignar todos los privilegios de ESA base de datos a ESTE usuario
-GRANT ALL PRIVILEGES ON inventario_adso.* TO 'SENA'@'localhost';
+-- GRANT ALL PRIVILEGES ON inventario_adso.* TO 'SENA'@'localhost';
 
 -- 4. Aplicar los cambios de privilegios inmediatamente
-FLUSH PRIVILEGES;
+-- FLUSH PRIVILEGES;
 
 -- 5. Seleccionar la base de datos para empezar a crear las tablas
 USE inventario_adso;
@@ -47,3 +47,4 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- 8. Modificamos la tabla productos para poder almacenar los precios
 ALTER TABLE products ADD COLUMN price DECIMAL(10, 2) AFTER name;
+ALTER TABLE users ADD COLUMN role ENUM('admin', 'user') NOT NULL DEFAULT 'user' AFTER email;

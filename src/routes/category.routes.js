@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authorizeRole } from "../middlewares/auth.middleware.js";
 import {
   getAllCategories,
   getCategoryById,
@@ -15,9 +16,9 @@ const categoryRouter = Router();
 
 categoryRouter.get("/", getAllCategories);
 categoryRouter.get("/:id", getCategoryById);
-categoryRouter.post("/", validateSchema(categorySchema), createCategory);
-categoryRouter.put("/:id", validateSchema(categoryUpdateSchema), updateCategory);
-categoryRouter.delete("/:id", deleteCategory);
+categoryRouter.post("/", authorizeRole("admin"), validateSchema(categorySchema), createCategory);
+categoryRouter.put("/:id", authorizeRole("admin"), validateSchema(categoryUpdateSchema), updateCategory);
+categoryRouter.delete("/:id", authorizeRole("admin"), deleteCategory);
 
 // Ruta Relacional: Obtener productos por categoría
 // Sigue el estándar REST: /recurso-padre/:id/recurso-hijo
