@@ -10,23 +10,18 @@ import { successResponse, errorResponse } from "../utils/response.util.js";
 // El modelo se encarga del hashing (Principio SRP)
 // ──────────────────────────────────────────────────────────
 const register = catchAsync(async (req, res) => {
-  // Mensaje de bienvenida personalizado según el rol
-  const mensaje =
-    user.role === "admin"
-      ? `¡Bienvenido administrador ${user.name}! Tienes acceso total al sistema.`
-      : `¡Bienvenido ${user.name}! Puedes consultar productos y categorías.`;
+  const { name, email, password } = req.body;
 
-  successResponse(res, mensaje, { accessToken, refreshToken, role: user.role });
-
-  // Verificar si el email ya existe en la BD
+  // 1. Verificar si el email ya existe en la BD
   const existing = await UserModel.findByEmail(email);
   if (existing) {
     return errorResponse(res, "El email ya está registrado", 409);
   }
 
-  // El modelo encripta la contraseña antes de guardarla (nunca texto plano)
+  // 2. El modelo encripta la contraseña antes de guardarla (nunca texto plano)
   const user = await UserModel.create({ name, email, password });
 
+  // 3. Respuesta de éxito sin exponer la contraseña
   successResponse(res, "Usuario registrado correctamente", user, 201);
 });
 
@@ -64,7 +59,15 @@ const login = catchAsync(async (req, res) => {
     { expiresIn: "7d" }                 // ⏰ Expiración: 7 días
   );
 
-  successResponse(res, "Login exitoso", { accessToken, refreshToken });
+  // Reto 1 (Punto C) — "La Taquilla":
+  // Además del token, devolvemos el rol para que el cliente sepa a qué zonas
+  // puede ir SIN decodificar el JWT. Los permisos NO van dentro del token
+  // (lo mantiene ligero y seguro); se extraen del objeto user de la BD.
+  successResponse(res, "Login exitoso", {
+    accessToken,
+    refreshToken,
+    role: user.role,     // "admin" | "user"
+  });
 });
 
 // ──────────────────────────────────────────────────────────
