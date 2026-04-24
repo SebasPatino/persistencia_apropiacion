@@ -4,98 +4,106 @@ import { UserModel } from "../models/user.model.js";
 import { catchAsync } from "../utils/catchAsync.util.js";
 import { successResponse, errorResponse } from "../utils/response.util.js";
 
-// ──────────────────────────────────────────────────────────
 // POST /auth/register
-// Crea un usuario con la contraseña encriptada con bcrypt
-// El modelo se encarga del hashing (Principio SRP)
-// ──────────────────────────────────────────────────────────
 const register = catchAsync(async (req, res) => {
   const { name, email, password } = req.body;
 
-  // 1. Verificar si el email ya existe en la BD
   const existing = await UserModel.findByEmail(email);
   if (existing) {
     return errorResponse(res, "El email ya está registrado", 409);
   }
 
-  // 2. El modelo encripta la contraseña antes de guardarla (nunca texto plano)
   const user = await UserModel.create({ name, email, password });
-
-  // 3. Respuesta de éxito sin exponer la contraseña
   successResponse(res, "Usuario registrado correctamente", user, 201);
 });
 
-// ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 // POST /auth/login
-// Valida credenciales y devuelve un JWT con expiración 1h
-// ──────────────────────────────────────────────────────────
+//
+// Punto C — "La Taquilla" (Reto 1):
+//   La taquilla entrega la manilla (token) + un folleto con la
+//   lista completa de permisos del usuario, para que sepa a qué
+//   zonas puede ir SIN decodificar el JWT ni adivinar.
+//
+//   Los permisos NO se meten dentro del token (lo mantiene ligero).
+//   Se consultan desde la BD y se devuelven como objeto anexo.
+// ─────────────────────────────────────────────────────────────
 const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
   // 1. Buscar usuario por email
   const user = await UserModel.findByEmail(email);
   if (!user) {
-    // Mensaje genérico para no revelar si el email existe o no
     return errorResponse(res, "Credenciales incorrectas", 401);
   }
 
-  // 2. Comparar la contraseña plana con el hash almacenado en BD
+  // 2. Comparar contraseña con el hash almacenado
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
     return errorResponse(res, "Credenciales incorrectas", 401);
   }
 
-  // 3. Generar token JWT (Access Token) con expiración corta: 1 hora
+  // 3. Generar Access Token (payload ligero, sin permisos adentro)
   const accessToken = jwt.sign(
-    { id: user.id, email: user.email, role: user.role },  // payload con rol (datos que viajan en el token)
-    process.env.JWT_SECRET,              // clave secreta definida en .env
-    { expiresIn: "1h" }                 // ⏰ Expiración: 1 hora
+    { id: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" }
   );
 
-  // 4. Generar Refresh Token de larga duración: 7 días
+  // 4. Generar Refresh Token
   const refreshToken = jwt.sign(
-    { id: user.id },                     // payload mínimo para refresh
-    process.env.JWT_REFRESH_SECRET,      // clave DIFERENTE para refresh (en .env)
-    { expiresIn: "7d" }                 // ⏰ Expiración: 7 días
+    { id: user.id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: "7d" }
   );
 
-  // Reto 1 (Punto C) — "La Taquilla":
-  // Además del token, devolvemos el rol para que el cliente sepa a qué zonas
-  // puede ir SIN decodificar el JWT. Los permisos NO van dentro del token
-  // (lo mantiene ligero y seguro); se extraen del objeto user de la BD.
+  // 5. Consultar permisos actualizados desde la BD ("El Radio de Seguridad")
+  const userWithPermissions = await UserModel.findByIdWithPermissions(user.id);
+
+  // 6. Construir el "folleto" de permisos para el cliente
+  const rolesInfo = userWithPermissions
+    ? {
+        role:        userWithPermissions.roleInfo?.name || user.role,
+        description: userWithPermissions.roleInfo?.description || "",
+        permissions: userWithPermissions.permissions.map((p) => p.code),
+      }
+    : {
+        role:        user.role,
+        description: "",
+        permissions: [],
+      };
+
+  // 7. Respuesta: manilla (token) + folleto (permisos)
   successResponse(res, "Login exitoso", {
     accessToken,
     refreshToken,
-    role: user.role,     // "admin" | "user"
+    user: {
+      id:    user.id,
+      name:  user.name,
+      email: user.email,
+      ...rolesInfo,
+    },
   });
 });
 
-// ──────────────────────────────────────────────────────────
 // POST /auth/refresh
-// Emite un nuevo accessToken usando el refreshToken válido
-// Sin obligar al usuario a iniciar sesión de nuevo
-// ──────────────────────────────────────────────────────────
 const refresh = catchAsync(async (req, res) => {
   const { refreshToken } = req.body;
 
-  // 1. Verificar que se envió el refreshToken
   if (!refreshToken) {
     return errorResponse(res, "Acceso denegado: Token requerido", 401);
   }
 
   try {
-    // 2. Verificar el refreshToken con su clave secreta propia
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-    // 3. Buscar el usuario para asegurarse que aún existe
     const user = await UserModel.findById(decoded.id);
     if (!user) {
       return errorResponse(res, "Usuario no encontrado", 404);
     }
 
-    // 4. Emitir un nuevo accessToken fresco
     const newAccessToken = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -106,14 +114,29 @@ const refresh = catchAsync(async (req, res) => {
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({
-        error:
-          "Acceso denegado: El token ha expirado, inicie sesión nuevamente",
+        error: "Acceso denegado: El token ha expirado, inicie sesión nuevamente",
       });
     }
-    return res
-      .status(401)
-      .json({ error: "Acceso denegado: Token inválido" });
+    return res.status(401).json({ error: "Acceso denegado: Token inválido" });
   }
 });
 
-export { register, login, refresh };
+// GET /auth/me — perfil completo con permisos actualizados desde la BD
+const me = catchAsync(async (req, res) => {
+  const userWithPermissions = await UserModel.findByIdWithPermissions(req.user.id);
+
+  if (!userWithPermissions) {
+    return errorResponse(res, "Usuario no encontrado", 404);
+  }
+
+  successResponse(res, "Perfil del usuario", {
+    id:          userWithPermissions.id,
+    name:        userWithPermissions.name,
+    email:       userWithPermissions.email,
+    role:        userWithPermissions.roleInfo?.name || userWithPermissions.role,
+    description: userWithPermissions.roleInfo?.description || "",
+    permissions: userWithPermissions.permissions.map((p) => p.code),
+  });
+});
+
+export { register, login, refresh, me };
