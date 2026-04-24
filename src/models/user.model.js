@@ -75,17 +75,38 @@ const UserModel = {
     };
   },
 
-  // Crear usuario encriptando la contraseña (Principio SRP)
-  async create({ name, email, password }) {
+  // ─────────────────────────────────────────────────────────────
+  // create — acepta un rol opcional ('admin' | 'user')
+  // Si no se pasa rol, asigna 'user' por defecto (principio de menor privilegio)
+  // ─────────────────────────────────────────────────────────────
+  async create({ name, email, password, role = "user" }) {
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Validar que el rol exista en la BD antes de insertarlo
+    const allowedRoles = ["admin", "user"];
+    const safeRole = allowedRoles.includes(role) ? role : "user";
 
     const [result] = await pool.query(
       `INSERT INTO users (name, email, password, role, role_id)
-       VALUES (?, ?, ?, 'user', (SELECT id FROM roles WHERE name = 'user'))`,
-      [name, email, hashedPassword]
+       VALUES (?, ?, ?, ?, (SELECT id FROM roles WHERE name = ?))`,
+      [name, email, hashedPassword, safeRole, safeRole]
     );
 
-    return { id: result.insertId, name, email, role: "user" };
+    return { id: result.insertId, name, email, role: safeRole };
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // getAll — solo para admins: lista todos los usuarios del sistema
+  // No devuelve passwords por seguridad
+  // ─────────────────────────────────────────────────────────────
+  async getAll() {
+    const [rows] = await pool.query(
+      `SELECT u.id, u.name, u.email, u.role, r.name AS role_name, u.created_at
+       FROM users u
+       LEFT JOIN roles r ON u.role_id = r.id
+       ORDER BY u.id ASC`
+    );
+    return rows;
   },
 };
 

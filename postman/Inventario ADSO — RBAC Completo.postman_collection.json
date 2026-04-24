@@ -1,0 +1,1491 @@
+{
+  "info": {
+    "_postman_id": "81ce97a0-dd3f-4548-ace4-436557fdde5d",
+    "name": "Inventario ADSO — RBAC Completo",
+    "description": "Colección completa del Sistema de Inventario ADSO con autenticación JWT y autorización RBAC.\n\n**Cómo usar:**\n1. Configura la variable `URL_API` (ej: http://localhost:3000)\n2. Ejecuta primero '1. Registrar Admin' y '2. Registrar User'\n3. Ejecuta '3. Login Admin' — el token se guarda automáticamente en `TOKEN_ADMIN`\n4. Ejecuta '4. Login User' — el token se guarda automáticamente en `TOKEN_USER`\n5. El resto de peticiones usan los tokens automáticamente\n\n**Variables automáticas guardadas:**\n- `TOKEN_ADMIN` — token del administrador\n- `TOKEN_USER` — token del usuario regular\n- `REFRESH_TOKEN_ADMIN` — refresh token del admin\n- `PRODUCT_ID` — ID del último producto creado\n- `CATEGORY_ID` — ID de la última categoría creada",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52923475"
+  },
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "1. Registrar Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 - Usuario creado', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Respuesta tiene formato correcto', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body.data).to.have.property('id');",
+                  "  pm.expect(body.data.role).to.eql('admin');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Sistema\",\n  \"email\": \"admin@inventario.com\",\n  \"password\": \"Admin123!\",\n  \"role\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/auth/register",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registra un usuario con rol ADMIN.\nEl campo `role` es opcional — si no se envía, se asigna 'user' por defecto."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Registrar User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 - Usuario creado', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Rol asignado es user por defecto', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.role).to.eql('user');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Usuario Regular\",\n  \"email\": \"usuario@inventario.com\",\n  \"password\": \"User123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/auth/register",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registra un usuario con rol USER (por defecto, sin enviar el campo role)."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Login Admin 🔑",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Login exitoso', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Respuesta incluye accessToken', () => {",
+                  "  pm.expect(body.data).to.have.property('accessToken');",
+                  "});",
+                  "",
+                  "pm.test('Respuesta incluye folleto de permisos', () => {",
+                  "  pm.expect(body.data.user).to.have.property('permissions');",
+                  "  pm.expect(body.data.user.permissions).to.be.an('array');",
+                  "  pm.expect(body.data.user.permissions.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test('Admin tiene permiso users.read', () => {",
+                  "  pm.expect(body.data.user.permissions).to.include('users.read');",
+                  "});",
+                  "",
+                  "// Guardar tokens automáticamente",
+                  "if (body.data && body.data.accessToken) {",
+                  "  pm.collectionVariables.set('TOKEN_ADMIN', body.data.accessToken);",
+                  "  pm.collectionVariables.set('REFRESH_TOKEN_ADMIN', body.data.refreshToken);",
+                  "  console.log('✅ TOKEN_ADMIN guardado correctamente');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@inventario.com\",\n  \"password\": \"Admin123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/auth/login",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login del admin. Guarda automáticamente TOKEN_ADMIN y REFRESH_TOKEN_ADMIN en las variables de la colección."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Login User 🔑",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Login exitoso', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('User solo tiene permisos de lectura', () => {",
+                  "  const perms = body.data.user.permissions;",
+                  "  pm.expect(perms).to.include('products.read');",
+                  "  pm.expect(perms).to.include('categories.read');",
+                  "  pm.expect(perms).to.not.include('products.create');",
+                  "  pm.expect(perms).to.not.include('users.read');",
+                  "});",
+                  "",
+                  "// Guardar token automáticamente",
+                  "if (body.data && body.data.accessToken) {",
+                  "  pm.collectionVariables.set('TOKEN_USER', body.data.accessToken);",
+                  "  console.log('✅ TOKEN_USER guardado correctamente');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usuario@inventario.com\",\n  \"password\": \"User123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/auth/login",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login del usuario regular. Guarda automáticamente TOKEN_USER."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Mi Perfil (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Perfil tiene permisos', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property('permissions');",
+                  "  pm.expect(body.data.permissions).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/auth/me",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Devuelve el perfil completo del admin con sus permisos consultados en tiempo real desde la BD."
+          },
+          "response": []
+        },
+        {
+          "name": "5b. Mi Perfil (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('User tiene solo 2 permisos', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.permissions.length).to.eql(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/auth/me",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Perfil del usuario regular con sus permisos limitados."
+          },
+          "response": []
+        },
+        {
+          "name": "6. Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Token renovado', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Nuevo accessToken recibido', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property('accessToken');",
+                  "});",
+                  "// Actualizar TOKEN_ADMIN con el nuevo token",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.accessToken) {",
+                  "  pm.collectionVariables.set('TOKEN_ADMIN', body.data.accessToken);",
+                  "  console.log('✅ TOKEN_ADMIN actualizado con nuevo token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{REFRESH_TOKEN_ADMIN}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/auth/refresh",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Renueva el accessToken usando el refreshToken. No requiere contraseña."
+          },
+          "response": []
+        },
+        {
+          "name": "7. Listar Usuarios — Admin ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Admin puede listar usuarios', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Devuelve array de usuarios', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  pm.expect(body.data.length).to.be.above(0);",
+                  "});",
+                  "pm.test('Los usuarios no exponen passwords', () => {",
+                  "  const body = pm.response.json();",
+                  "  body.data.forEach(u => {",
+                  "    pm.expect(u).to.not.have.property('password');",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/auth/users",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "users"
+              ]
+            },
+            "description": "Solo el ADMIN puede ver la lista de usuarios del sistema.\nUsa checkPermissionFromDB (consulta la BD en tiempo real).\nEspera: 200 OK con lista de usuarios."
+          },
+          "response": []
+        },
+        {
+          "name": "7b. Listar Usuarios — User ❌ 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 - User no puede listar usuarios', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test('Mensaje de acceso denegado', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.false;",
+                  "  pm.expect(body.message).to.include('Acceso denegado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/auth/users",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "users"
+              ]
+            },
+            "description": "Un USER no tiene el permiso 'users.read'.\nDebe recibir 403 Forbidden.\nDemuestra que el RBAC funciona correctamente."
+          },
+          "response": []
+        },
+        {
+          "name": "8. Sin Token — 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 - Token requerido', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Mensaje de token requerido', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.error).to.include('Token requerido');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{URL_API}}/auth/me",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Petición sin token. Debe retornar 401 Unauthorized."
+          },
+          "response": []
+        },
+        {
+          "name": "9. Token Inválido — 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 - Token inválido', () => {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer token.falso.aqui"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/auth/me",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Petición con token malformado. Debe retornar 401 Token inválido."
+          },
+          "response": []
+        },
+        {
+          "name": "10. Validación — Email duplicado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409 - Email duplicado', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin Clon\",\n  \"email\": \"admin@inventario.com\",\n  \"password\": \"Admin123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/auth/register",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Intenta registrar un email que ya existe. Espera 409 Conflict."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📦 Productos",
+      "item": [
+        {
+          "name": "GET Todos los productos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve array de productos', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/products",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
+            "description": "Cualquier usuario autenticado puede ver los productos."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Producto por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Producto encontrado', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property('id');",
+                  "  pm.expect(body.data).to.have.property('name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/products/1",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Producto por ID — No existe (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 - Producto no encontrado', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/products/99999",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products",
+                "99999"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear producto — Admin ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 - Producto creado', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "// Guardar ID del producto para las pruebas siguientes",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) {",
+                  "  pm.collectionVariables.set('PRODUCT_ID', body.data.id);",
+                  "  console.log('✅ PRODUCT_ID guardado:', body.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Producto de prueba RBAC\",\n  \"category_id\": 1,\n  \"price\": 299.99\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/products",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
+            "description": "Solo el ADMIN tiene el permiso 'products.create'. Guarda el ID del producto creado."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear producto — User ❌ 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 - Acceso denegado', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test('Mensaje indica falta de permiso', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.message).to.include('products.create');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Intento de creación no autorizado\",\n  \"category_id\": 1,\n  \"price\": 99.99\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/products",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
+            "description": "Un USER sin 'products.create' debe recibir 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Actualizar producto — Admin ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Producto actualizado', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Nombre actualizado correctamente', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data.name).to.eql('Producto actualizado correctamente');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Producto actualizado correctamente\",\n  \"category_id\": 2,\n  \"price\": 349.99\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/products/{{PRODUCT_ID}}",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products",
+                "{{PRODUCT_ID}}"
+              ]
+            },
+            "description": "Actualiza el producto creado en el paso anterior usando su ID guardado."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Actualizar producto — User ❌ 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 - User no puede actualizar', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hack intento\",\n  \"category_id\": 1,\n  \"price\": 1.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/products/1",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            },
+            "description": "Un USER no puede actualizar productos. Espera 403."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Eliminar producto — Admin ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Producto eliminado', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/products/{{PRODUCT_ID}}",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products",
+                "{{PRODUCT_ID}}"
+              ]
+            },
+            "description": "Elimina el producto de prueba creado antes."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Eliminar producto — User ❌ 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 - User no puede eliminar', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/products/1",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products",
+                "1"
+              ]
+            },
+            "description": "Un USER no puede eliminar productos. Espera 403."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Validación — Campos faltantes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 - Validación fallida', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Respuesta incluye errores de validación', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.false;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sin precio ni categoría\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/products",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "products"
+              ]
+            },
+            "description": "Envía body incompleto para probar la validación de Zod. Espera 400."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🗂️ Categorías",
+      "item": [
+        {
+          "name": "GET Todas las categorías",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve categorías', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  pm.expect(body.data.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/categories",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Categoría por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Categoría encontrada', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.have.property('id');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/categories/1",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Productos de una categoría",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Devuelve productos de la categoría', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/categories/1/products",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories",
+                "1",
+                "products"
+              ]
+            },
+            "description": "Devuelve todos los productos que pertenecen a la categoría con ID 1."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear categoría — Admin ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 - Categoría creada', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) {",
+                  "  pm.collectionVariables.set('CATEGORY_ID', body.data.id);",
+                  "  console.log('✅ CATEGORY_ID guardado:', body.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Categoría de prueba RBAC\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/categories",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "description": "Solo ADMIN puede crear categorías. Guarda el ID para pruebas posteriores."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear categoría — User ❌ 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 - User no puede crear categorías', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test('Mensaje indica falta de permiso', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.message).to.include('categories.create');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Intento no autorizado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/categories",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Actualizar categoría — Admin ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Categoría actualizada', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Categoría actualizada correctamente\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{URL_API}}/categories/{{CATEGORY_ID}}",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories",
+                "{{CATEGORY_ID}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Categoría con productos — 409 ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409 - Categoría con recursos vinculados', () => {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Mensaje de integridad referencial', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.message).to.include('vinculado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/categories/1",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories",
+                "1"
+              ]
+            },
+            "description": "La categoría 1 tiene productos vinculados. La regla de integridad debe impedir el borrado y devolver 409 Conflict."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Categoría vacía — Admin ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 - Categoría vacía eliminada', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_ADMIN}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/categories/{{CATEGORY_ID}}",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories",
+                "{{CATEGORY_ID}}"
+              ]
+            },
+            "description": "Elimina la categoría de prueba creada antes (no tiene productos vinculados, debe eliminarse correctamente)."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Categoría — User ❌ 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403 - User no puede eliminar categorías', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_USER}}"
+              }
+            ],
+            "url": {
+              "raw": "{{URL_API}}/categories/5",
+              "host": [
+                "{{URL_API}}"
+              ],
+              "path": [
+                "categories",
+                "5"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "URL_API",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "TOKEN_ADMIN",
+      "value": ""
+    },
+    {
+      "key": "TOKEN_USER",
+      "value": ""
+    },
+    {
+      "key": "REFRESH_TOKEN_ADMIN",
+      "value": ""
+    },
+    {
+      "key": "PRODUCT_ID",
+      "value": "1"
+    },
+    {
+      "key": "CATEGORY_ID",
+      "value": "21"
+    }
+  ]
+}

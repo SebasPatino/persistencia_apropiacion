@@ -6,14 +6,15 @@ import { successResponse, errorResponse } from "../utils/response.util.js";
 
 // POST /auth/register
 const register = catchAsync(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
 
   const existing = await UserModel.findByEmail(email);
   if (existing) {
     return errorResponse(res, "El email ya está registrado", 409);
   }
 
-  const user = await UserModel.create({ name, email, password });
+  // role es opcional: si no se envía, user.model asigna 'user' por defecto
+  const user = await UserModel.create({ name, email, password, role });
   successResponse(res, "Usuario registrado correctamente", user, 201);
 });
 
@@ -139,4 +140,17 @@ const me = catchAsync(async (req, res) => {
   });
 });
 
-export { register, login, refresh, me };
+// ─────────────────────────────────────────────────────────────
+// GET /auth/users — solo ADMIN puede listar todos los usuarios
+//
+// Punto C — Transferencia del conocimiento:
+//   Demuestra que el checkPermissionFromDB funciona en producción.
+//   Usa la versión "Radio de Seguridad" (consulta BD en tiempo real)
+//   porque es una ruta crítica de administración.
+// ─────────────────────────────────────────────────────────────
+const getUsers = catchAsync(async (req, res) => {
+  const users = await UserModel.getAll();
+  successResponse(res, "Lista de usuarios del sistema", users);
+});
+
+export { register, login, refresh, me, getUsers };

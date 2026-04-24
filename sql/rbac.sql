@@ -59,12 +59,15 @@ INSERT INTO permissions (id, code, description) VALUES
   (5, 'categories.read',   'Ver lista y detalle de categorías'),
   (6, 'categories.create', 'Crear una nueva categoría'),
   (7, 'categories.update', 'Editar una categoría existente'),
-  (8, 'categories.delete', 'Eliminar una categoría');
+  (8, 'categories.delete', 'Eliminar una categoría'),
+  (9, 'users.read',        'Listar todos los usuarios del sistema (solo admin)');
 
 -- ── 7. Asignar PERMISOS a ROLES (Tabla Pivote) ───────────────
+-- Admin: acceso total (productos + categorías + gestión de usuarios)
 INSERT INTO role_permissions (role_id, permission_id) VALUES
   (1, 1), (1, 2), (1, 3), (1, 4),
-  (1, 5), (1, 6), (1, 7), (1, 8);
+  (1, 5), (1, 6), (1, 7), (1, 8),
+  (1, 9);
 
 INSERT INTO role_permissions (role_id, permission_id) VALUES
   (2, 1),

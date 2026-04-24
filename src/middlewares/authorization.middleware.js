@@ -23,6 +23,7 @@ const PERMISSIONS_MAP = {
     "categories.create",
     "categories.update",
     "categories.delete",
+    "users.read",        // solo admin puede listar usuarios
   ],
   user: [
     "products.read",

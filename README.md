@@ -63,3 +63,76 @@ Para que nuestro código sea ordenado y profesional, dividimos las tareas en dif
     * **Controllers (Controladores):** Es el "cerebro" que toma las decisiones. Recibe los datos que envía el usuario, le pide ayuda al Modelo para procesarlos y finalmente responde al cliente con un mensaje de éxito o de error.
     * **Models (Modelos):** Es el "especialista" en los datos. Es el único que sabe cómo buscar, filtrar o eliminar información. El resto de la aplicación no toca los datos directamente; siempre le pide el favor al Modelo.
     * **Data (Almacén):** Es nuestra "bodega" temporal. Aquí guardamos el arreglo de objetos con nuestros productos. En esta etapa, los datos viven en la memoria, lo que nos permite practicar antes de usar una base de datos real.
+---
+
+## Módulo de Autorización RBAC
+
+### Arquitectura de Seguridad
+
+La aplicación implementa dos capas de seguridad en cadena:
+
+```
+petición → verifyToken (¿quién eres?) → checkPermission (¿qué puedes hacer?) → controlador
+```
+
+### Matriz RBAC
+
+| Rol | Permiso atómico | Campo de acción permitido |
+|-----|----------------|--------------------------|
+| `admin` | `products.read` | Ver lista y detalle de cualquier producto |
+| `admin` | `products.create` | Crear nuevos productos en el inventario |
+| `admin` | `products.update` | Editar nombre, precio y categoría de productos |
+| `admin` | `products.delete` | Eliminar permanentemente cualquier producto |
+| `admin` | `categories.read` | Ver lista y detalle de cualquier categoría |
+| `admin` | `categories.create` | Crear nuevas categorías de productos |
+| `admin` | `categories.update` | Editar el nombre de una categoría existente |
+| `admin` | `categories.delete` | Eliminar categorías sin productos vinculados |
+| `admin` | `users.read` | Listar todos los usuarios registrados del sistema |
+| `user` | `products.read` | Solo puede ver productos, no modificarlos |
+| `user` | `categories.read` | Solo puede ver categorías, no modificarlas |
+
+### Dos versiones del guardia de seguridad
+
+**`checkPermission` (mapa estático):** Verifica permisos contra un mapa hardcodeado en memoria. Rápido, sin consultas a BD. Se usa en rutas de uso frecuente (CRUD de productos y categorías).
+
+**`checkPermissionFromDB` (radio de seguridad):** Consulta la BD en tiempo real en cada petición. Si un admin cambia permisos, el efecto es inmediato sin necesidad de que el usuario cierre sesión. Se usa en rutas críticas de administración (`GET /auth/users`).
+
+### Endpoints y permisos requeridos
+
+| Método | Ruta | Autenticación | Permiso requerido |
+|--------|------|--------------|------------------|
+| POST | `/auth/register` | No | — |
+| POST | `/auth/login` | No | — |
+| POST | `/auth/refresh` | No | — |
+| GET | `/auth/me` | JWT | — (solo requiere token) |
+| GET | `/auth/users` | JWT | `users.read` (solo admin) |
+| GET | `/products` | JWT | — |
+| GET | `/products/:id` | JWT | — |
+| POST | `/products` | JWT | `products.create` |
+| PUT | `/products/:id` | JWT | `products.update` |
+| DELETE | `/products/:id` | JWT | `products.delete` |
+| GET | `/categories` | JWT | — |
+| GET | `/categories/:id` | JWT | — |
+| GET | `/categories/:id/products` | JWT | — |
+| POST | `/categories` | JWT | `categories.create` |
+| PUT | `/categories/:id` | JWT | `categories.update` |
+| DELETE | `/categories/:id` | JWT | `categories.delete` |
+
+### Ejecutar el proyecto
+
+```bash
+# 1. Instalar dependencias
+npm install
+
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tu configuración de MySQL
+
+# 3. Inicializar la base de datos
+mysql -u SENA -p inventario_adso < sql/database.sql
+mysql -u SENA -p inventario_adso < sql/rbac.sql
+mysql -u SENA -p inventario_adso < sql/data.sql
+
+# 4. Iniciar el servidor
+npm run dev
+```
